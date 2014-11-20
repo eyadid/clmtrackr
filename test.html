@@ -8,7 +8,7 @@
 			#overlay {
 				position: absolute;
 				top: 0px;
-				left: 0px;
+				left: 400px;
 				-o-transform : scaleX(-1);
 				-webkit-transform : scaleX(-1);
 				transform : scaleX(-1);
@@ -22,6 +22,9 @@
 				transform : scaleX(-1);
 				-ms-filter : fliph; /*IE*/
 				filter : fliph; /*IE*/
+			}
+			.swatcher{
+				width:100px;height:100px;transform:all 1;
 			}
 		</style>
 		
@@ -45,11 +48,12 @@
 			<div id="container">
 				<video id="videoel" width="400" height="300" preload="auto" loop></video>
 				<canvas id="overlay" width="400" height="300"></canvas>
+				<div id="jaw" class="swatcher"></div>
+				<div id="chk" class="swatcher"></div>
+				<div id="diff"></div>
 			</div>
-			
-			
-			
 			<input class="btn" type="button" value="wait, loading video" disabled="disabled" onclick="startVideo()" id="startbutton"></input>
+			
 			<script>
 				var vid = document.getElementById('videoel');
 				var overlay = document.getElementById('overlay');
@@ -122,53 +126,56 @@
 					// start loop to draw face
 					drawLoop();
 				}
-				var xx = 0;
+				
+				
+				var MODEL_JAW = 0;
+				var MODEL_RIGHT_EYEB = 1;
+				var MODEL_LEFT_EYEB = 2;
+				var MODEL_LEFT_EYE = 3;
+				var MODEL_RIGHT_EYE = 4;
+				var MODEL_NOSE_BOTTOM = 5;
+				var MODEL_NOSE_CENTER = 6;
+				var MODEL_MOUTH = 7;
+				var MODEL_MOUTH_B = 8;
+				
+				
 				function drawLoop() {
 				    requestAnimFrame(drawLoop);
 				    overlayCC.clearRect(0, 0, 400, 300);
 				    overlayCC.fillStyle = "#FFCCFF";
 					
 					var currentPositions = ctrack.getCurrentPosition();
-					
-					var MODEL_JAW = 0;
-					var MODEL_RIGHT_EYEB = 1;
-					var MODEL_LEFT_EYEB = 2;
-					var MODEL_LEFT_EYF = 3;
-					var MODEL_RIGHT_EYE = 4;
-					var MODEL_NOSE_BOTTOM = 5;
-					var MODEL_NOSE_CENTER = 6;
-					var MODEL_MOUTH = 7;
-
 					var drawPoints = {};
 
 					drawPoints[MODEL_NOSE_BOTTOM] = [pModel.path.normal[MODEL_NOSE_BOTTOM][2], pModel.path.normal[MODEL_NOSE_BOTTOM][6]];
 					drawPoints[MODEL_MOUTH] = [pModel.path.normal[MODEL_MOUTH][16], pModel.path.normal[MODEL_MOUTH][20]];
-					drawPoints[MODEL_JAW] = pModel.path.normal[MODEL_JAW];//[0, 14];
+					drawPoints[MODEL_JAW] = pModel.path.normal[MODEL_JAW];
+					drawPoints[MODEL_LEFT_EYE] = [pModel.path.normal[MODEL_LEFT_EYE][8]];
+					drawPoints[MODEL_RIGHT_EYE] = [pModel.path.normal[MODEL_RIGHT_EYE][8]];
 
+					drawPoints[MODEL_MOUTH_B] = [];
+					
+					for(var i = 0 ; i < pModel.path.normal[MODEL_MOUTH].length; i++){
+						if(i < 12)
+							drawPoints[MODEL_MOUTH_B].push(pModel.path.normal[MODEL_MOUTH][i]);
+					}
+					
+					
 					function getPoint(modelId, idx) 
 					{
 					    return { x : currentPositions[drawPoints[modelId][idx]][0],
 								 y : currentPositions[drawPoints[modelId][idx]][1]}
 					
 					}
+					function checkRect(rect,p){
+						rect.left = Math.min(rect.left,p.x);
+						rect.right = Math.max(rect.right,p.x);
+						rect.top = Math.min(rect.top,p.y);
+						rect.bottom = Math.max(rect.bottom,p.y);
+					}
 					if (currentPositions) {
 						
-						var point = {};
-							
-					    overlayCC.beginPath();
-
-						for(var i = 0 ; i < drawPoints[MODEL_JAW].length; i++)
-						{
-							point = getPoint(MODEL_JAW, i);
-	
-							if(i == 0)
-								overlayCC.moveTo(point.x,point.y);
-							else
-								overlayCC.lineTo(point.x,point.y);
-						}
-						
-						overlayCC.stroke();
-						
+						var rect = {left:10000000,top:10000000,right:-10000000,bottom:-10000000};
 						
 						var pointJawA = getPoint(MODEL_JAW, 0);
 						var pointNoseA = getPoint(MODEL_NOSE_BOTTOM, 0);
@@ -177,51 +184,131 @@
 						var pointJawB = getPoint(MODEL_JAW, drawPoints[MODEL_JAW].length-1);
 						var pointNoseB = getPoint(MODEL_NOSE_BOTTOM, 1);
 						var pointMouthB = getPoint(MODEL_MOUTH, 0);
+						var p = {x:0,y:0};
 						
-						overlayCC.beginPath();
-						overlayCC.moveTo(pointJawA.x,pointJawA.y);
-						overlayCC.bezierCurveTo(pointJawA.x,pointMouthA.y, pointMouthA.x,pointMouthA.y, pointNoseA.x,pointNoseA.y);
-						overlayCC.stroke();
-
-						overlayCC.beginPath();
-						overlayCC.moveTo(pointJawB.x,pointJawB.y);						
-						overlayCC.bezierCurveTo(pointJawB.x,pointMouthB.y, pointMouthB.x,pointMouthB.y, pointNoseB.x,pointNoseB.y);
-						overlayCC.stroke();
+						overlayCC.clearRect(0,0,400,300);
+						overlayCC.fillStyle = "black";
+						overlayCC.fillRect(0,0,400,400);
 						
+						overlayCC.drawImage(vid, 0, 0, 400,300);
+												
 						overlayCC.beginPath();
 						overlayCC.moveTo(pointNoseA.x,pointNoseA.y);
-						overlayCC.lineTo(pointNoseB.x,pointNoseB.y);
-						overlayCC.stroke();
+						checkRect(rect,pointNoseA);
 						
-						/*
-						for (var modelId in drawPoints) {
-							var drawSet = drawPoints[modelId];
-							var model = pModel.path.normal[modelId];
-					        for (var i = 0 ; i < drawPoints[modelId].length; i++) {
-								var drawIdx = drawSet[i];
-								var modelIdx = model[drawIdx];								
-					            var x = currentPositions[modelIdx][0];
-					            var y = currentPositions[modelIdx][1];
-					            
+						for(var i = 0;i <= 1; i += 0.2) {
+							p = getQuadraticBezierXY(i, pointNoseA,{x:pointJawA.x,y:pointMouthA.y},pointJawA);
+							overlayCC.lineTo(p.x,p.y);
+							checkRect(rect,p);
+						}
+						for(var i = 0 ; i < drawPoints[MODEL_JAW].length; i++) {
+							p = getPoint(MODEL_JAW, i)
+							overlayCC.lineTo(p.x,p.y);
+							checkRect(rect,p);
+						}
+						for(var i = 0;i <= 1; i += 0.2) {
+							p = getQuadraticBezierXY(i, pointJawB,{x:pointJawB.x, y:pointMouthB.y},pointNoseB);
+							overlayCC.lineTo(p.x,p.y);
+							checkRect(rect,p);
+						}
+						
+						overlayCC.closePath();
+						
+						overlayCC.globalCompositeOperation = 'destination-in';
+						overlayCC.fill();
+						
+						overlayCC.beginPath();
+						p = getPoint(MODEL_MOUTH_B, 0);
+						overlayCC.moveTo(p.x,p.y);
+						checkRect(rect,p);
+						
+						for(var i = 0 ; i < drawPoints[MODEL_MOUTH_B].length; i++) {
+							p = getPoint(MODEL_MOUTH_B, i)
+							overlayCC.lineTo(p.x,p.y);
+							checkRect(rect,p);
+						}
+						
+						overlayCC.closePath();
+						overlayCC.globalCompositeOperation = 'destination-out';
+						overlayCC.fill();
+						
+						var avgJawColor = getAvgColor(overlayCC.getImageData(rect.left,rect.top,rect.right-rect.left,rect.bottom-rect.top).data);
+						
 
-								if(modelId == MODEL_JAW){
-									if(i == 0){
-										overlayCC.moveTo(x,y);
-									}else{
-										overlayCC.lineTo(x,y);
-									}
-								}
-					        }
-					    }*/
+						overlayCC.clearRect(0,0,400,300);
+						overlayCC.fillStyle = "black";
+						overlayCC.fillRect(0,0,400,400);
+						
+						overlayCC.drawImage(vid, 0, 0, 400,300);
+					
+						
+						
+						p = getPoint(MODEL_LEFT_EYE, 0);
+						//pointNoseA
+						
+						var dy = Math.abs(pointNoseA.y - p.y);
+						var dx = Math.abs(pointNoseA.x - p.x);
+						var angle = Math.atan2(dy , dx);
+						var distance = Math.sqrt((dx*dx) + (dy*dy))/2;
+						
+						var centerX = p.x + distance * Math.cos(angle);
+						var centerY = p.y + distance * Math.sin(angle);
+						
+						overlayCC.globalCompositeOperation = 'destination-in';
+						overlayCC.beginPath();
+						overlayCC.arc(centerX, centerY, distance/2, 0, 2 * Math.PI, false);
+						overlayCC.closePath();
+						overlayCC.fill();
+						
+						var avgChickboneColor = getAvgColor(overlayCC.getImageData(centerX - distance/2,centerY - distance/2,distance,distance).data);
+						
+						document.getElementById("chk").style.background = "rgba(" + avgJawColor.r + "," + avgJawColor.g + "," + avgJawColor.b + ",255)";
+						document.getElementById("jaw").style.background = "rgba(" + avgChickboneColor.r + "," + avgChickboneColor.g + "," + avgChickboneColor.b + ",255)";
+						
+						var a = ((avgJawColor.r + avgJawColor.g + avgJawColor.b) / 3);
+						var b = ((avgChickboneColor.r + avgChickboneColor.g + avgChickboneColor.b) / 3);
+						
+						var s = Math.floor(
+							(Math.min(a,b) / Math.max(a,b))*100
+						);
+						
+						document.getElementById("chk").style.width = s + "%";
+						document.getElementById("jaw").style.width = (100-s) + "%";
+						
+						
 					}
 				}
-				
-				// update stats on every iteration
-				document.addEventListener('clmtrackrIteration', function(event) {
-                    
-				    //stats.update();
-				}, false);
-				
+				function getAvgColor(data){
+					var a = 0;
+					var c = {r:0,g:0,b:0,a:0};
+					for(var i = 0 ; i < data.length; i+=4){
+						if(data[i] == 0 ||
+							data[i+1] == 0 ||
+							data[i+2] == 0 ||
+							data[i+3] == 0) continue;
+							
+							a++;
+							c.r += data[i];
+							c.g += data[i+1];
+							c.b += data[i+2];
+							c.a += data[i+3];
+					}
+					c.r /= a;
+					c.g /= a;
+					c.b /= a;
+					c.a /= a;
+					c.r = Math.floor(c.r);
+					c.g = Math.floor(c.g);
+					c.b = Math.floor(c.b);
+					c.a = Math.floor(c.a);
+					
+					return c;
+				}
+				function getQuadraticBezierXY(percent,startPt,controlPt,endPt) {
+				    var x = Math.pow(1-percent,2) * startPt.x + 2 * (1-percent) * percent * controlPt.x + Math.pow(percent,2) * endPt.x; 
+				    var y = Math.pow(1-percent,2) * startPt.y + 2 * (1-percent) * percent * controlPt.y + Math.pow(percent,2) * endPt.y; 
+				    return {x:x,y:y};
+				}
 			</script>
 		</div>
 	</body>
