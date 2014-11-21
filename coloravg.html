@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<title>Face tracker</title>
+		<meta charset="utf-8">
+		<style>
+			#container{position:relative;}
+			#overlay {
+				position: absolute;
+				top: 0px;
+				left: 0px;
+				-o-transform : scaleX(-1);
+				-webkit-transform : scaleX(-1);
+				transform : scaleX(-1);
+				-ms-filter : fliph; /*IE*/
+				filter : fliph; /*IE*/
+			}
+
+			#videoel {
+				-o-transform : scaleX(-1);
+				-webkit-transform : scaleX(-1);
+				transform : scaleX(-1);
+				-ms-filter : fliph; /*IE*/
+				filter : fliph; /*IE*/
+			}
+			.swatcher{
+				width:100px;height:100px;
+			}
+		</style>
+		
+	</head>
+	<body>
+		<script src="examples/ext_js/utils.js"></script>
+		<script src="examples/ext_js/jsfeat-min.js"></script>
+		<script src="examples/ext_js/frontalface.js"></script>
+		<script src="examples/ext_js/jsfeat_detect.js"></script>
+		<script src="examples/ext_js/numeric-1.2.6.min.js"></script>
+		<script src="examples/ext_js/mosse.js"></script>
+		<script src="examples/ext_js/left_eye_filter.js"></script>
+		<script src="examples/ext_js/right_eye_filter.js"></script>
+		<script src="examples/ext_js/nose_filter.js"></script>
+		<script src="models/model_pca_20_svm.js"></script>
+		<script src="js/clm.js"></script>
+		<script src="js/svmfilter_webgl.js"></script>
+		<script src="js/svmfilter_fft.js"></script>
+		<script src="js/mossefilter.js"></script>
+
+		<script src="dsc/facerec.js"></script>
+		<script src="dsc/coloravg.js"></script>
+		
+		
+			<div id="container">
+				<video id="videoel" width="400" height="300" preload="auto" loop></video>
+				<canvas id="overlay" width="400" height="300"></canvas>
+				<div id="chk" class="swatcher"></div>
+				<div id="jaw" class="swatcher"></div>
+				<div id="diff"></div>
+			</div>
+			
+			<input class="btn" type="button" value="wait, loading video" disabled="disabled" id="startbutton"></input>
+			
+			<script>
+			var jawBox = document.getElementById("jaw");
+			var cheekBox = document.getElementById("chk");
+			var diffBox =  document.getElementById("diff");
+			
+			
+			
+			
+			var ctx = document.getElementById('overlay').getContext('2d');
+			var vid = document.getElementById("videoel");
+			
+			var faceRec = new FaceRec({videoObj:vid});
+			var colorAvg = new ColorAvg(ctx,vid);
+			
+			faceRec.onReady = function(){
+				var startbutton = document.getElementById('startbutton');
+				startbutton.value = "start";
+				startbutton.disabled = null;
+				startbutton.onclick = function(){
+					faceRec.startVideo();
+				}
+			}
+
+			faceRec.onProcess = function(features)
+			{
+				if(!features) return;
+				
+				var avg = colorAvg.calculateAverages(features);
+				
+				/***
+				
+				Display stuff
+				
+				*****/ 
+
+				jawBox.style.background = "rgba(" + avg.jaw.r + "," + avg.jaw.g + "," + avg.jaw.b + ",255)";
+				cheekBox.style.background = "rgba(" + avg.cheekbone.r + "," + avg.cheekbone.g + "," + avg.cheekbone.b + ",255)";
+				
+				var a = Math.floor((((avg.jaw.r + avg.jaw.g + avg.jaw.b) / 3) / 255)*100);
+				var b = Math.floor((((avg.cheekbone.r + avg.cheekbone.g + avg.cheekbone.b) / 3) / 255)*100);
+				
+				jawBox.style.width = a + "%";
+				jawBox.innerHTML =  a + "%";
+				
+				cheekBox.style.width = b + "%";
+				cheekBox.innerHTML = b + "%";
+
+				diffBox.innerHTML = "Jaw = " + avg.jaw.r + "," + avg.jaw.g + "," + avg.jaw.b + " (" + a + "%)<br/>" +
+									"Cheekbone = " + avg.cheekbone.r + "," + avg.cheekbone.g + "," + avg.cheekbone.b + " (" + b + "%)";
+				
+				
+				/*
+					Draw Face
+				**/
+		
+				ctx.globalCompositeOperation = 'source-out';
+				ctx.clearRect(0,0,400,300);
+				ctx.beginPath();
+				
+				for(var i = 0 ; i < pModel.path.normal.length; i++){
+					for(var ii = 0; ii < pModel.path.normal[i].length; ii++)
+						if(ii == 0)
+							ctx.moveTo(features[pModel.path.normal[i][ii]][0],
+								       features[pModel.path.normal[i][ii]][1]);
+						else
+							ctx.lineTo(features[pModel.path.normal[i][ii]][0],
+									   features[pModel.path.normal[i][ii]][1]);
+				}
+				
+				ctx.closePath();
+				ctx.strokeStyle = "#FFFFFF";
+				ctx.stroke();
+			}
+			
+			faceRec.init();
+					
+						
+				
+			</script>
+		</div>
+	</body>
+</html>

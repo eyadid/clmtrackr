@@ -188,7 +188,7 @@ var clm = {
 			for (var i = 0;i < numParameters+4;i++) {
 				currentParameters[i] = 0;
 			}
-			
+
 			if (patchType == "SVM") {
 				var webGLContext;
 				var webGLTestCanvas = document.createElement('canvas');
