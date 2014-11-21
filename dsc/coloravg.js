@@ -1,4 +1,4 @@
-function ColorAvg( ctx , vid){
+function ColorAvg(videoObj){
 
 	var MODEL_MOUTH_B = 999;
 	
@@ -10,6 +10,21 @@ function ColorAvg( ctx , vid){
 	featuresIndices[MODEL_LEFT_EYE] = [pModel.path.normal[MODEL_LEFT_EYE][8]];
 	featuresIndices[MODEL_RIGHT_EYE] = [pModel.path.normal[MODEL_RIGHT_EYE][8]];
 	featuresIndices[MODEL_MOUTH_B] = [];
+
+	var canvas = document.createElement("canvas");
+	var canvas2 = document.createElement("canvas");
+	
+	canvas.width = videoObj.width;
+	canvas.height = videoObj.height;
+	
+	canvas2.width = videoObj.width;
+	canvas2.height = videoObj.height;
+
+	document.body.appendChild(canvas);
+	document.body.appendChild(canvas2);
+	
+	var ctxJawLine = canvas.getContext('2d');
+	var ctxCheekbone = canvas2.getContext('2d');
 
 	for(var i = 0 ; i < pModel.path.normal[MODEL_MOUTH].length; i++){
 		if(i < 12)
@@ -64,7 +79,7 @@ function ColorAvg( ctx , vid){
 	    return {x:x,y:y};
 	}
 
-	this.calculateAverages = function(features){
+	this.calculateAverages = function(features, modelIndices){
 		if(!features) return null;
 	
 		var rect = {left:10000000,top:10000000,right:-10000000,bottom:-10000000};
@@ -79,8 +94,8 @@ function ColorAvg( ctx , vid){
 		var pointNoseB = getPoint(features,MODEL_NOSE_BOTTOM, 1);
 		var pointMouthB = getPoint(features,MODEL_MOUTH, 0);
 	
-		ctx.clearRect(0, 0, 400, 300);
-		ctx.drawImage(vid, 0, 0, 400,300);
+		ctxJawLine.clearRect(0, 0, videoObj.width, videoObj.height);
+		ctxJawLine.drawImage(videoObj, 0, 0, videoObj.width,videoObj.height);
 	
 		/****
 	
@@ -88,53 +103,53 @@ function ColorAvg( ctx , vid){
 	
 		***/
 	
-		ctx.beginPath();
-		ctx.moveTo(pointNoseA.x,pointNoseA.y);
+		ctxJawLine.beginPath();
+		ctxJawLine.moveTo(pointNoseA.x,pointNoseA.y);
 	
 		checkRect(rect,pointNoseA);
 	
 		for(var i = 0;i <= 1; i += 0.2) {
 			p = getQuadraticBezierXY(i, pointNoseA,{x:pointJawA.x,y:pointMouthA.y},pointJawA);
-			ctx.lineTo(p.x,p.y);
+			ctxJawLine.lineTo(p.x,p.y);
 			checkRect(rect,p);
 		}
 	
 		for(var i = 0 ; i < featuresIndices[MODEL_JAW].length; i++) {
 			p = getPoint(features,MODEL_JAW, i)
-			ctx.lineTo(p.x,p.y);
+			ctxJawLine.lineTo(p.x,p.y);
 			checkRect(rect,p);
 		}
 	
 		for(var i = 0;i <= 1; i += 0.2) {
 			p = getQuadraticBezierXY(i, pointJawB,{x:pointJawB.x, y:pointMouthB.y},pointNoseB);
-			ctx.lineTo(p.x,p.y);
+			ctxJawLine.lineTo(p.x,p.y);
 			checkRect(rect,p);
 		}
 	
-		ctx.closePath();
+		ctxJawLine.closePath();
 	
-		ctx.globalCompositeOperation = 'destination-in';
-		ctx.fill();
+		ctxJawLine.globalCompositeOperation = 'destination-in';
+		ctxJawLine.fill();
 	
-		ctx.beginPath();
+		ctxJawLine.beginPath();
 	
 		p = getPoint(features,MODEL_MOUTH_B, 0);
 	
-		ctx.moveTo(p.x,p.y);
+		ctxJawLine.moveTo(p.x,p.y);
 	
 		checkRect(rect,p);
 	
 		for(var i = 0 ; i < featuresIndices[MODEL_MOUTH_B].length; i++) {
 			p = getPoint(features,MODEL_MOUTH_B, i)
-			ctx.lineTo(p.x,p.y);
+			ctxJawLine.lineTo(p.x,p.y);
 			checkRect(rect,p);
 		}
 	
-		ctx.closePath();
-		ctx.globalCompositeOperation = 'destination-out';
-		ctx.fill();
+		ctxJawLine.closePath();
+		ctxJawLine.globalCompositeOperation = 'destination-out';
+		ctxJawLine.fill();
 	
-		var avgJawColor = getAvgColor(ctx.getImageData(rect.left,rect.top,rect.right-rect.left,rect.bottom-rect.top).data);
+		var avgJawColor = getAvgColor(ctxJawLine.getImageData(rect.left,rect.top,rect.right-rect.left,rect.bottom-rect.top).data);
 	
 		/****
 	
@@ -142,9 +157,8 @@ function ColorAvg( ctx , vid){
 	
 		***/
 	
-		ctx.clearRect(0,0,400,300);
-
-		ctx.drawImage(vid, 0, 0, 400,300);
+		ctxCheekbone.clearRect(0,0,videoObj.width,videoObj.height);
+		ctxCheekbone.drawImage(videoObj, 0, 0, videoObj.width,videoObj.height);
 	
 		p = getPoint(features,MODEL_LEFT_EYE, 0);
 		//pointNoseA
@@ -157,13 +171,16 @@ function ColorAvg( ctx , vid){
 		var centerX = p.x + distance * Math.cos(angle);
 		var centerY = p.y + distance * Math.sin(angle);
 	
-		ctx.globalCompositeOperation = 'destination-in';
-		ctx.beginPath();
-		ctx.arc(centerX, centerY, distance/2, 0, 2 * Math.PI, false);
-		ctx.closePath();
-		ctx.fill();
+		ctxCheekbone.globalCompositeOperation = 'destination-in';
+		ctxCheekbone.beginPath();
+		ctxCheekbone.arc(centerX, centerY, distance/2, 0, 2 * Math.PI, false);
+		ctxCheekbone.closePath();
+		ctxCheekbone.fill();
 	
-		return {cheekbone : getAvgColor(ctx.getImageData(centerX - distance/2,centerY - distance/2,distance,distance).data),
+		var avgCheekboneColor = getAvgColor(ctxCheekbone.getImageData(centerX - distance/2,centerY - distance/2,distance,distance).data);
+		
+		
+		return {cheekbone : avgCheekboneColor,
 				jaw : avgJawColor};
 	}
 	

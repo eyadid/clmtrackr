@@ -4,19 +4,22 @@
 		<title>Face tracker</title>
 		<meta charset="utf-8">
 		<style>
-			#container{position:relative;}
-			#overlay {
+		body{margin:0;padding:0;}
+			canvas {
 				position: absolute;
 				top: 0px;
-				left: 0px;
+				left: 400px;
 				-o-transform : scaleX(-1);
 				-webkit-transform : scaleX(-1);
 				transform : scaleX(-1);
 				-ms-filter : fliph; /*IE*/
 				filter : fliph; /*IE*/
+				z-index:2;
+				border:1px solid #000;
 			}
 
 			#videoel {
+				z-index:1;
 				-o-transform : scaleX(-1);
 				-webkit-transform : scaleX(-1);
 				transform : scaleX(-1);
@@ -49,13 +52,11 @@
 		<script src="dsc/coloravg.js"></script>
 		
 		
-			<div id="container">
 				<video id="videoel" width="400" height="300" preload="auto" loop></video>
 				<canvas id="overlay" width="400" height="300"></canvas>
 				<div id="chk" class="swatcher"></div>
 				<div id="jaw" class="swatcher"></div>
 				<div id="diff"></div>
-			</div>
 			
 			<input class="btn" type="button" value="wait, loading video" disabled="disabled" id="startbutton"></input>
 			
@@ -64,14 +65,11 @@
 			var cheekBox = document.getElementById("chk");
 			var diffBox =  document.getElementById("diff");
 			
-			
-			
-			
 			var ctx = document.getElementById('overlay').getContext('2d');
 			var vid = document.getElementById("videoel");
 			
 			var faceRec = new FaceRec({videoObj:vid});
-			var colorAvg = new ColorAvg(ctx,vid);
+			var colorAvg = new ColorAvg(vid);
 			
 			faceRec.onReady = function(){
 				var startbutton = document.getElementById('startbutton');
@@ -82,11 +80,11 @@
 				}
 			}
 
-			faceRec.onProcess = function(features)
+			faceRec.onFrame = function(features, modelIndices)
 			{
-				if(!features) return;
+				if(!features || !modelIndices) return;
 				
-				var avg = colorAvg.calculateAverages(features);
+				var avg = colorAvg.calculateAverages(features, modelIndices);
 				
 				/***
 				
@@ -115,21 +113,21 @@
 				**/
 		
 				ctx.globalCompositeOperation = 'source-out';
-				ctx.clearRect(0,0,400,300);
+				ctx.clearRect(0,0,800,600);
 				ctx.beginPath();
 				
-				for(var i = 0 ; i < pModel.path.normal.length; i++){
-					for(var ii = 0; ii < pModel.path.normal[i].length; ii++)
+				for(var i = 0 ; i < modelIndices.length; i++){
+					for(var ii = 0; ii < modelIndices[i].length; ii++)
 						if(ii == 0)
-							ctx.moveTo(features[pModel.path.normal[i][ii]][0],
-								       features[pModel.path.normal[i][ii]][1]);
+							ctx.moveTo(features[modelIndices[i][ii]][0],
+								       features[modelIndices[i][ii]][1]);
 						else
-							ctx.lineTo(features[pModel.path.normal[i][ii]][0],
-									   features[pModel.path.normal[i][ii]][1]);
+							ctx.lineTo(features[modelIndices[i][ii]][0],
+									   features[modelIndices[i][ii]][1]);
 				}
 				
 				ctx.closePath();
-				ctx.strokeStyle = "#FFFFFF";
+				ctx.strokeStyle = "#FFCCFF";
 				ctx.stroke();
 			}
 			

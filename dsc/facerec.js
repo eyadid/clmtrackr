@@ -63,7 +63,7 @@ function FaceRec(opt){
 	}
 	
 	this.drawLoop = function(){
-		if(inst.onProcess) inst.onProcess(inst.ctrack.getCurrentPosition());
+		if(inst.onFrame) inst.onFrame(inst.ctrack.getCurrentPosition(),pModel.path.normal);
 		requestAnimFrame(inst.drawLoop);
 	}
 
