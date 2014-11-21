@@ -73,12 +73,6 @@ function ColorAvg(videoObj){
 		return c;
 	}
 
-	function getQuadraticBezierXY(percent,startPt,controlPt,endPt) {
-	    var x = Math.pow(1-percent,2) * startPt.x + 2 * (1-percent) * percent * controlPt.x + Math.pow(percent,2) * endPt.x; 
-	    var y = Math.pow(1-percent,2) * startPt.y + 2 * (1-percent) * percent * controlPt.y + Math.pow(percent,2) * endPt.y; 
-	    return {x:x,y:y};
-	}
-
 	this.calculateAverages = function(features, modelIndices){
 		if(!features) return null;
 	
@@ -108,23 +102,15 @@ function ColorAvg(videoObj){
 	
 		checkRect(rect,pointNoseA);
 	
-		for(var i = 0;i <= 1; i += 0.2) {
-			p = getQuadraticBezierXY(i, pointNoseA,{x:pointJawA.x,y:pointMouthA.y},pointJawA);
-			ctxJawLine.lineTo(p.x,p.y);
-			checkRect(rect,p);
-		}
-	
+		ctxJawLine.quadraticCurveTo(pointJawA.x,pointMouthA.y,pointJawA.x,pointJawA.y);
+
 		for(var i = 0 ; i < featuresIndices[MODEL_JAW].length; i++) {
 			p = getPoint(features,MODEL_JAW, i)
 			ctxJawLine.lineTo(p.x,p.y);
 			checkRect(rect,p);
 		}
 	
-		for(var i = 0;i <= 1; i += 0.2) {
-			p = getQuadraticBezierXY(i, pointJawB,{x:pointJawB.x, y:pointMouthB.y},pointNoseB);
-			ctxJawLine.lineTo(p.x,p.y);
-			checkRect(rect,p);
-		}
+		ctxJawLine.quadraticCurveTo(pointJawB.x,pointMouthB.y,pointNoseB.x,pointNoseB.y);
 	
 		ctxJawLine.closePath();
 	
@@ -161,7 +147,6 @@ function ColorAvg(videoObj){
 		ctxCheekbone.drawImage(videoObj, 0, 0, videoObj.width,videoObj.height);
 	
 		p = getPoint(features,MODEL_LEFT_EYE, 0);
-		//pointNoseA
 	
 		var dy = Math.abs(pointNoseA.y - p.y);
 		var dx = Math.abs(pointNoseA.x - p.x);
@@ -172,9 +157,24 @@ function ColorAvg(videoObj){
 		var centerY = p.y + distance * Math.sin(angle);
 	
 		ctxCheekbone.globalCompositeOperation = 'destination-in';
+
 		ctxCheekbone.beginPath();
 		ctxCheekbone.arc(centerX, centerY, distance/2, 0, 2 * Math.PI, false);
+		
+		p = getPoint(features,MODEL_RIGHT_EYE, 0);
+
+		dy = Math.abs(pointNoseB.y - p.y);
+		dx = Math.abs(pointNoseB.x - p.x);
+		angle = Math.atan2(dy , dx);
+		distance = Math.sqrt((dx*dx) + (dy*dy))/2;
+	
+		centerX = p.x - distance * Math.cos(angle);
+		centerY = p.y + distance * Math.sin(angle);
+	
+		ctxCheekbone.arc(centerX, centerY, distance/2, 0, 2 * Math.PI, false);
 		ctxCheekbone.closePath();
+		
+		
 		ctxCheekbone.fill();
 	
 		var avgCheekboneColor = getAvgColor(ctxCheekbone.getImageData(centerX - distance/2,centerY - distance/2,distance,distance).data);
