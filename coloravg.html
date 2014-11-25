@@ -17,7 +17,8 @@
 				z-index:2;
 				border:1px solid #000;
 			}
-
+			#overlay2{position:relative;top:0;left:0;}			
+			#overlay2,
 			#videoel {
 				z-index:1;
 				-o-transform : scaleX(-1);
@@ -52,24 +53,65 @@
 		<script src="dsc/coloravg.js"></script>
 		
 		
-				<video id="videoel" width="400" height="300" preload="auto" loop></video>
-				<canvas id="overlay" width="400" height="300"></canvas>
-				<div id="chk" class="swatcher"></div>
-				<div id="jaw" class="swatcher"></div>
-				<div id="diff"></div>
+		<!-- video id="videoel" width="400" height="300" preload="auto" loop></video -->
+		<canvas id="overlay" width="400" height="300"></canvas>
+		<canvas id="overlay2" width="400" height="300"></canvas>
+		
+		<div id="chk" class="swatcher"></div>
+		<div id="jaw" class="swatcher"></div>
+		<div id="diff"></div>
 			
-			<input class="btn" type="button" value="wait, loading video" disabled="disabled" id="startbutton"></input>
+		<input class="btn" type="button" value="wait, loading video" disabled="disabled" id="startbutton"></input>
 			
-			<script>
+		<script>
 			var jawBox = document.getElementById("jaw");
 			var cheekBox = document.getElementById("chk");
 			var diffBox =  document.getElementById("diff");
 			
 			var ctx = document.getElementById('overlay').getContext('2d');
+			var ctx_img = document.getElementById('overlay2').getContext('2d');
+			
 			var vid = document.getElementById("videoel");
 			
-			var faceRec = new FaceRec({videoObj:vid});
-			var colorAvg = new ColorAvg(vid);
+			var faceRec = new FaceRec({sampleObj:document.getElementById('overlay2'), stopOnConvergence : true});
+			var colorAvg = new ColorAvg(document.getElementById('overlay2'));
+			
+			/*
+003783.jpg
+-rwxr-xr--@ 1 sam  staff  270910 Feb  6  2003 003775.jpg
+-rwxr-xr--@ 1 sam  staff  266038 Feb  6  2003 003784.jpg
+-rwxr-xr--@ 1 sam  staff  262014 Feb  6  2003 003776.jpg
+-rwxr-xr--@ 1 sam  staff  255864 Feb  6  2003 003483.jpg
+-rwxr-xr--@ 1 sam  staff  250833 Feb  6  2003 003779.jpg
+-rwxr-xr--@ 1 sam  staff  250396 Feb  6  2003 003782.jpg
+-rwxr-xr--@ 1 sam  staff  248058 Feb  6  2003 003790.jpg
+-rwxr-xr--@ 1 sam  staff  248055 Feb  6  2003 003677.jpg
+-rwxr-xr--@ 1 sam  staff  247258 Feb  6  2003 .jpg
+			
+			*/
+		
+			var img = new Image();
+			img.onload = function() {
+				var w = img.width;
+				var h = img.height;
+				var r = h/w;
+				
+				if(w > 400){
+					w = 400;
+					h = w*r;
+				}else if (h > 300){
+					h = 300;
+					w = h/r;
+				}
+				
+				ctx_img.drawImage(img,0,0,w,h);
+				faceRec.startImage();
+			};
+			var imgname = ""+Math.ceil(Math.random()*8291);
+			while(imgname.length < 6) imgname = "0" + imgname;
+			img.src = 'testsamples/' +  imgname + '.jpg';
+		
+			
 			
 			faceRec.onReady = function(){
 				var startbutton = document.getElementById('startbutton');
@@ -135,7 +177,6 @@
 					
 						
 				
-			</script>
-		</div>
+		</script>
 	</body>
 </html>

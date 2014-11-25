@@ -1,4 +1,5 @@
-function ColorAvg(videoObj){
+var countsample = 0;
+function ColorAvg(sampleObj){
 
 	var MODEL_MOUTH_B = 999;
 	
@@ -14,11 +15,11 @@ function ColorAvg(videoObj){
 	var canvas = document.createElement("canvas");
 	var canvas2 = document.createElement("canvas");
 	
-	canvas.width = videoObj.width;
-	canvas.height = videoObj.height;
+	canvas.width = sampleObj.width;
+	canvas.height = sampleObj.height;
 	
-	canvas2.width = videoObj.width;
-	canvas2.height = videoObj.height;
+	canvas2.width = sampleObj.width;
+	canvas2.height = sampleObj.height;
 
 	document.body.appendChild(canvas);
 	document.body.appendChild(canvas2);
@@ -75,7 +76,7 @@ function ColorAvg(videoObj){
 
 	this.calculateAverages = function(features, modelIndices){
 		if(!features) return null;
-	
+
 		var rect = {left:10000000,top:10000000,right:-10000000,bottom:-10000000};
 	
 		var point = {x:0,y:0};
@@ -88,15 +89,15 @@ function ColorAvg(videoObj){
 		var pointNoseB = getPoint(features,MODEL_NOSE_BOTTOM, 1);
 		var pointMouthB = getPoint(features,MODEL_MOUTH, 0);
 	
-		ctxJawLine.clearRect(0, 0, videoObj.width, videoObj.height);
-		ctxJawLine.drawImage(videoObj, 0, 0, videoObj.width,videoObj.height);
-	
+		ctxJawLine.clearRect(0, 0, sampleObj.width, sampleObj.height);
+		ctxJawLine.drawImage(sampleObj, 0, 0, sampleObj.width,sampleObj.height);
+
 		/****
 	
 		Calculate Jaw line average color
 	
 		***/
-	
+		
 		ctxJawLine.beginPath();
 		ctxJawLine.moveTo(pointNoseA.x,pointNoseA.y);
 	
@@ -116,13 +117,13 @@ function ColorAvg(videoObj){
 	
 		ctxJawLine.globalCompositeOperation = 'destination-in';
 		ctxJawLine.fill();
-	
+
 		ctxJawLine.beginPath();
 	
 		p = getPoint(features,MODEL_MOUTH_B, 0);
 	
 		ctxJawLine.moveTo(p.x,p.y);
-	
+
 		checkRect(rect,p);
 	
 		for(var i = 0 ; i < featuresIndices[MODEL_MOUTH_B].length; i++) {
@@ -130,12 +131,13 @@ function ColorAvg(videoObj){
 			ctxJawLine.lineTo(p.x,p.y);
 			checkRect(rect,p);
 		}
-	
+		
 		ctxJawLine.closePath();
 		ctxJawLine.globalCompositeOperation = 'destination-out';
 		ctxJawLine.fill();
-	
+		
 		var avgJawColor = getAvgColor(ctxJawLine.getImageData(rect.left,rect.top,rect.right-rect.left,rect.bottom-rect.top).data);
+		
 	
 		/****
 	
@@ -143,8 +145,8 @@ function ColorAvg(videoObj){
 	
 		***/
 	
-		ctxCheekbone.clearRect(0,0,videoObj.width,videoObj.height);
-		ctxCheekbone.drawImage(videoObj, 0, 0, videoObj.width,videoObj.height);
+		ctxCheekbone.clearRect(0,0,sampleObj.width,sampleObj.height);
+		ctxCheekbone.drawImage(sampleObj, 0, 0, sampleObj.width,sampleObj.height);
 	
 		p = getPoint(features,MODEL_LEFT_EYE, 0);
 	
@@ -178,7 +180,6 @@ function ColorAvg(videoObj){
 		ctxCheekbone.fill();
 	
 		var avgCheekboneColor = getAvgColor(ctxCheekbone.getImageData(centerX - distance/2,centerY - distance/2,distance,distance).data);
-		
 		
 		return {cheekbone : avgCheekboneColor,
 				jaw : avgJawColor};

@@ -10,61 +10,81 @@ var MODEL_MOUTH = 7;
 
 function FaceRec(opt){
 	if(!opt) opt = {};
-	if(!opt.videoObj) opt.videoObj = document.getElementsByTagName("video")[0]; 
-	if(typeof opt.videoObj == "string") opt.videoObj = document.getElementById(opt.videoObj);
-	if(!opt.videoObj) throw "Video missing!";
+	if(!opt.sampleObj) opt.sampleObj = document.getElementsByTagName("sampleObj")[0]; 
+	if(typeof opt.sampleObj == "string") opt.sampleObj = document.getElementById(opt.sampleObj);
+	if(!opt.sampleObj) throw "Sample missing!";
 
 	var inst = this;
 	
 	this.ctrack = null;
-
-	this.init = function(){
+	
+	this.continueSampling = true;
+	
+	this.init = function(initOpts){
 		
-		this.ctrack = new clm.tracker({ useWebGL: true });
+		if(!initOpts) initOpts = {};
+		if(initOpts.useWebGL != false) initOpts.useWebGL = true;
+		if(opt.stopOnConvergence) initOpts.stopOnConvergence = true;
+		
+		this.ctrack = new clm.tracker(initOpts);
 		this.ctrack.init(pModel);
+	
+		if(opt.sampleObj && opt.sampleObj.nodeName == "VIDEO"){
 
-		navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
-		window.URL = window.URL || window.webkitURL || window.msURL || window.mozURL;
+			navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+			window.URL = window.URL || window.webkitURL || window.msURL || window.mozURL;
 
-		// check for camerasupport
-		if (navigator.getUserMedia) {
-			// set up stream
+			// check for camerasupport
+			if (navigator.getUserMedia) {
+				// set up stream
 			
-			var videoSelector = {video : true};
+				var videoSelector = {video : true};
 
-			if (window.navigator.appVersion.match(/Chrome\/(.*?) /)) {
-				var chromeVersion = parseInt(window.navigator.appVersion.match(/Chrome\/(\d+)\./)[1], 10);
-				if (chromeVersion < 20) {
-					videoSelector = "video";
-				}
-			};
+				if (window.navigator.appVersion.match(/Chrome\/(.*?) /)) {
+					var chromeVersion = parseInt(window.navigator.appVersion.match(/Chrome\/(\d+)\./)[1], 10);
+					if (chromeVersion < 20) {
+						videoSelector = "video";
+					}
+				};
 		
-			navigator.getUserMedia(videoSelector, function( stream ) {
-				if (opt.videoObj.mozCaptureStream) {
-					opt.videoObj.mozSrcObject = stream;
-				} else {
-					opt.videoObj.src = (window.URL && window.URL.createObjectURL(stream)) || stream;
-				}
-				opt.videoObj.play();
-			}, function() {
-				alert("There was some problem trying to fetch video from your webcam, using a fallback video instead.");
-			});
-		} else {
-			alert("Your browser does not seem to support getUserMedia, using a fallback video instead.");
-		}
+				navigator.getUserMedia(videoSelector, function( stream ) {
+					if (opt.sampleObj.mozCaptureStream) {
+						opt.sampleObj.mozSrcObject = stream;
+					} else {
+						opt.sampleObj.src = (window.URL && window.URL.createObjectURL(stream)) || stream;
+					}
+					opt.sampleObj.play();
+				}, function() {
+					alert("There was some problem trying to fetch video from your webcam, using a fallback video instead.");
+				});
+			} else {
+				alert("Your browser does not seem to support getUserMedia, using a fallback video instead.");
+			}
 
-		opt.videoObj.addEventListener('canplay', this.onReady, false);
+			opt.sampleObj.addEventListener('canplay', this.onReady, false);
+		}else{
+			document.addEventListener("clmtrackrConverged", function(event) {
+				inst.continueSampling = false;
+			}, false);
+		}
 	}
 	
+	this.startImage = function() {
+		inst.ctrack.start(opt.sampleObj);
+		inst.drawLoop();
+	}
 	this.startVideo = function() {
-		opt.videoObj.play();
-		inst.ctrack.start(opt.videoObj);
+		opt.sampleObj.play();
+		inst.ctrack.start(opt.sampleObj);
 		inst.drawLoop();
 	}
 	
 	this.drawLoop = function(){
-		if(inst.onFrame) inst.onFrame(inst.ctrack.getCurrentPosition(),pModel.path.normal);
-		requestAnimFrame(inst.drawLoop);
+		if((opt.stopOnConvergence && inst.continueSampling == false) || !opt.stopOnConvergence)
+			if(inst.onFrame) inst.onFrame(inst.ctrack.getCurrentPosition(),pModel.path.normal);
+
+		if(inst.continueSampling)
+			requestAnimFrame(inst.drawLoop);
 	}
 
 }
